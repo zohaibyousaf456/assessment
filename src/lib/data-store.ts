@@ -9,6 +9,8 @@ export interface User {
 }
 
 export interface Post {
+  authorId: string
+  imageUrl: any
   id: string
   userId: string
   content: string

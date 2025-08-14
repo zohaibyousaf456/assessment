@@ -53,7 +53,7 @@ export default function DashboardPage() {
         toast(
           "Error",{
           description: "Failed to load user data",
-          // // variant: "destructive",
+          // variant: "destructive",
         })
       } finally {
         setIsLoading(false)

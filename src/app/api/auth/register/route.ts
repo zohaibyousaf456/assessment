@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createUser, findUserByEmail } from "@/lib/data-store"
+import { collections } from "@/lib/database"
+import { hashPassword, generateToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,37 +17,64 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const usersCollection = await collections.users()
+
     // Check if user already exists
-    const existingUser = findUserByEmail(email)
+    const existingUser = await usersCollection.findOne({
+      $or: [{ email }, { username }],
+    })
+
     if (existingUser) {
       console.log("User already exists")
-      return NextResponse.json({ error: "User with this email already exists" }, { status: 409 })
+      return NextResponse.json(
+        {
+          error: existingUser.email === email ? "User with this email already exists" : "Username already taken",
+        },
+        { status: 409 },
+      )
     }
 
-    // Simple hash function for development (replace with proper bcrypt in production)
-    function simpleHash(password: string): string {
-      let hash = 0
-      for (let i = 0; i < password.length; i++) {
-        const char = password.charCodeAt(i)
-        hash = (hash << 5) - hash + char
-        hash = hash & hash // Convert to 32bit integer
-      }
-      return hash.toString()
-    }
-
-    const hashedPassword = simpleHash(password)
+    const hashedPassword = await hashPassword(password)
     console.log("Password hashed")
 
-    const newUser = createUser({
+    const newUser = {
       username,
       email,
       password: hashedPassword,
       interests,
+      name: username,
+      bio: "",
+      profilePicture: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    const result = await usersCollection.insertOne(newUser)
+    const userId = result.insertedId.toString()
+
+    console.log("User created successfully:", userId)
+
+    const token = generateToken({
+      userId,
+      email,
+      username,
     })
 
-    console.log("User created successfully:", newUser.id)
-
-    return NextResponse.json({ message: "User created successfully", userId: newUser.id }, { status: 201 })
+    return NextResponse.json(
+      {
+        message: "User created successfully",
+        userId,
+        token,
+        user: {
+          _id: userId,
+          username,
+          email,
+          name: username,
+          interests,
+        },
+      },
+      { status: 201 },
+    )
   } catch (error) {
     console.error("Registration error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

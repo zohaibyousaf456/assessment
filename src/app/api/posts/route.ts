@@ -18,31 +18,13 @@ export async function POST(request: NextRequest) {
   console.log("✅ POST /api/posts called successfully")
 
   try {
-    const formData = await request.formData()
-    const content = formData.get("content") as string
-    const image = formData.get("image") as File | null
-
-    console.log("📝 Post data received:", { content, hasImage: !!image })
-
-    // Get user ID from token (simplified for now)
-    const token = request.headers.get("authorization")?.replace("Bearer ", "")
-    let authorId = "anonymous"
-
-    if (token) {
-      try {
-        // Simple token decode (in production, use proper JWT verification)
-        const payload = JSON.parse(atob(token.split(".")[1]))
-        authorId = payload.userId || payload.id || "anonymous"
-      } catch (e) {
-        console.log("Token decode failed, using anonymous")
-      }
-    }
+    const body = await request.json()
+    console.log("📝 Post data received:", body)
 
     const newPost = {
       id: Date.now().toString(),
-      content: content || "Test post",
-      authorId: authorId,
-      imageUrl: image ? `/uploads/${image.name}` : null, // Placeholder for image handling
+      content: body.content || "Test post",
+      authorId: body.authorId || "test-user",
       createdAt: new Date().toISOString(),
       likes: 0,
       comments: [],

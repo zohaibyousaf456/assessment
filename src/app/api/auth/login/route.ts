@@ -1,19 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sign } from "jsonwebtoken"
-import { findUserByEmail, getAllUsers } from "@/lib/data-store"
-
-// Simple hash function for development (replace with proper bcrypt in production)
-function simpleHash(password: string): string {
-  let hash = 0
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash // Convert to 32-bit integer
-  }
-  return hash.toString()
-}
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+import { collections } from "@/lib/database"
+import { verifyPassword, generateToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +12,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
     }
 
-    const allUsers = getAllUsers()
-    console.log("Available users:", allUsers.length)
+    const usersCollection = await collections.users()
+    const user = await usersCollection.findOne({ email })
 
-    const user = findUserByEmail(email)
     if (!user) {
       console.log("User not found")
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
@@ -36,29 +22,33 @@ export async function POST(request: NextRequest) {
 
     console.log("User found, verifying password")
 
-    const hashedInputPassword = simpleHash(password)
-    console.log("Hashed input password:", hashedInputPassword)
-    console.log("Stored password hash:", user.password)
-
-    if (hashedInputPassword !== user.password) {
+    const isValidPassword = await verifyPassword(password, user.password)
+    if (!isValidPassword) {
       console.log("Password verification failed")
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
     console.log("Password verified successfully")
 
-    // Generate JWT token
-    const token = sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" })
+    const userId = user._id.toString()
+    const token = generateToken({
+      userId,
+      email: user.email,
+      username: user.username,
+    })
 
     console.log("Login successful for user:", user.username)
 
     return NextResponse.json({
       token,
       user: {
-        id: user.id,
+        _id: userId,
         username: user.username,
         email: user.email,
+        name: user.name,
         interests: user.interests,
+        bio: user.bio,
+        profilePicture: user.profilePicture,
       },
     })
   } catch (error) {

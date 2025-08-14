@@ -1,34 +1,26 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { verify } from "jsonwebtoken"
-import { findUserById } from "@/lib/data-store"
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+import { getUserFromRequest } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Authorization token required" }, { status: 401 })
-    }
-
-    const token = authHeader.substring(7)
-
-    // Verify JWT token
-    const decoded = verify(token, JWT_SECRET) as { userId: string; email: string }
-
-    // Using shared data store instead of local users array
-    const user = findUserById(decoded.userId)
+    const user = await getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     return NextResponse.json({
-      id: user.id,
+      _id: user._id.toString(),
       username: user.username,
       email: user.email,
+      name: user.name,
+      bio: user.bio,
+      profilePicture: user.profilePicture,
       interests: user.interests,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     })
   } catch (error) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    console.error("Get user error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

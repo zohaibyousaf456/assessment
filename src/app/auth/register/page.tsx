@@ -69,12 +69,15 @@ export default function RegisterPage() {
       console.log("Response data:", data)
 
       if (response.ok) {
-        toast("Account created!", {description: "Please sign in to continue." })
-        console.log("Navigating to login...")
-        router.push("/auth/login")
+        if (data.token) {
+          localStorage.setItem("token", data.token)
+          localStorage.setItem("user", JSON.stringify(data.user))
+        }
+        toast("Welcome to ConnectHub!", {description: "Your account has been created successfully." })
+        console.log("Navigating to dashboard...")
+        router.push("/dashboard")
       } else {
-        toast(
-          "Error",{
+        toast("Error",{
           description: data.error || "Failed to create account",
           // variant: "destructive",
         })
@@ -82,14 +85,12 @@ export default function RegisterPage() {
     } catch (error) {
       console.error("Registration error:", error)
       if (error instanceof Error && error.name === "AbortError") {
-        toast(
-          "Error",{
+        toast("Error",{
           description: "Request timed out. Please try again.",
           // variant: "destructive",
         })
       } else {
-        toast(
-          "Error",{
+        toast("Error",{
           description: "Something went wrong. Please try again.",
           // variant: "destructive",
         })
@@ -100,68 +101,96 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
+      <Card className="w-full max-w-md card-professional animate-slide-up">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Join ConnectHub</CardTitle>
-          <CardDescription>Create your account and start connecting</CardDescription>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            Join ConnectHub
+          </CardTitle>
+          <CardDescription className="text-lg text-gray-600">Create your account and start connecting</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-semibold text-gray-700">
+                Username
+              </Label>
               <Input
                 id="username"
                 value={formData.username}
                 onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
+                className="h-12 border-2 border-gray-200 focus:border-cyan-500 transition-colors"
+                placeholder="Choose a unique username"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                className="h-12 border-2 border-gray-200 focus:border-cyan-500 transition-colors"
+                placeholder="your@email.com"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                className="h-12 border-2 border-gray-200 focus:border-cyan-500 transition-colors"
+                placeholder="Create a strong password"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label>Interests (select at least 3)</Label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-700">
+                Interests (select at least 3)
+                <span className="ml-2 text-xs text-cyan-600 font-medium">{formData.interests.length}/3 minimum</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
                 {INTERESTS.map((interest) => (
-                  <div key={interest} className="flex items-center space-x-2">
+                  <div
+                    key={interest}
+                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
                     <Checkbox
                       id={interest}
                       checked={formData.interests.includes(interest)}
                       onCheckedChange={(checked) => handleInterestChange(interest, checked as boolean)}
+                      className="data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
                     />
-                    <Label htmlFor={interest} className="text-sm">
+                    <Label htmlFor={interest} className="text-sm font-medium cursor-pointer">
                       {interest}
                     </Label>
                   </div>
                 ))}
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || formData.interests.length < 3}>
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-lg btn-hover"
+              disabled={isLoading || formData.interests.length < 3}
+            >
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/auth/login" className="text-indigo-600 hover:underline">
+              <Link
+                href="/auth/login"
+                className="text-cyan-600 hover:text-cyan-700 font-semibold hover:underline transition-colors"
+              >
                 Sign in
               </Link>
             </p>
